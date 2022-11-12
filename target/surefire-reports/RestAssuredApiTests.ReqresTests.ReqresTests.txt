@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: RestAssuredApiTests.ReqresTests.ReqresTests
+-------------------------------------------------------------------------------
+Tests run: 13, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 5.937 s - in RestAssuredApiTests.ReqresTests.ReqresTests
