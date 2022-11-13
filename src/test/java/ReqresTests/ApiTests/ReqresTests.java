@@ -13,6 +13,9 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.File;
 import java.util.List;
@@ -35,10 +38,10 @@ public class ReqresTests {
     public static void setFilter(){
         RestAssured.filters(new AllureRestAssured());
     }
-    @Test
-    @DisplayName("Получить пользователя")
-    public void getSingleUserSuccessfulTest(){
-        int userId = 2;
+    @ParameterizedTest
+    @ValueSource(ints = 2)
+    @DisplayName("Получить пользователя + POJO")
+    public void getSingleUserSuccessfulTest(int userId){
         SingleUserPOJO singleUserSuccessfulResponse = given()
                 .spec(reqresRequestSpecification)
                 .pathParams("id",userId)
@@ -52,10 +55,10 @@ public class ReqresTests {
                 .getObject("data",SingleUserPOJO.class);
         Assertions.assertEquals(singleUserSuccessfulResponse.getId(),userId);
     }
-    @Test
-    @DisplayName("Получить список пользователей")
-    public void getUsersListSuccessfulTest(){
-        int pageNumber = 2;
+    @ParameterizedTest
+    @ValueSource(ints = 2)
+    @DisplayName("Получить список пользователей + POJO")
+    public void getUsersListSuccessfulTest(int pageNumber){
         List<SingleUserPOJO> usersList = given()
                 .spec(reqresRequestSpecification)
                 .pathParams("pageNumber",pageNumber)
@@ -74,18 +77,17 @@ public class ReqresTests {
         }
     }
 
-    @Test
+    @ParameterizedTest
+    @ValueSource(ints = 23)
     @DisplayName("Не получить пользователя")
-    public void getSingleUserUnsuccessfulTest(){
-        int userId = 23;
-        Response response = given()
+    public void getSingleUserUnsuccessfulTest(int userId){
+                given()
                 .spec(reqresRequestSpecification)
                 .pathParams("id",userId)
                 .when()
                 .get(reqresEndPoints.singleUser)
                 .then()
-                .statusCode(404)
-                .extract().response();
+                .statusCode(404);
     }
     @Test
     @DisplayName("Получить список неизвестных")
@@ -106,41 +108,37 @@ public class ReqresTests {
             j++;
         }
     }
-    @Test()
+    @ParameterizedTest()
+    @ValueSource(ints = 2)
     @DisplayName("Получить одного неизвестного")
-    public void getSingleUnknown(){
-        int unknownId = 2;
-        UnknownPOJO unknownPOJO = given()
+    public void getSingleUnknown(int unknownId){
+                given()
                 .spec(reqresRequestSpecification)
                 .pathParams("id",unknownId)
                 .when()
                 .get(reqresEndPoints.singleUnknown)
                 .then()
                 .statusCode(200)
-                .extract()
-                .body()
-                .jsonPath()
-                .getObject("data",UnknownPOJO.class);
-        assertThat(unknownPOJO.getId(),equalTo(unknownId));
+                .body("data.id",equalTo(unknownId));
     }
-    @Test
+    @ParameterizedTest
+    @CsvSource({"morpheus,leader"})
     @DisplayName("Создать пользователя")
-    public void createUserTest(){
-        CRUDUserPOJO userData = new CRUDUserPOJO("morpheus","leader");
+    public void createUserTest(String name, String job){
+        CRUDUserPOJO userData = new CRUDUserPOJO(name,job);
         given()
                 .body(userData)
                 .spec(reqresRequestSpecification)
                 .when()
                 .post(reqresEndPoints.createSingleUser)
                 .then()
-                .statusCode(201)
-                .extract().response();
+                .statusCode(201);
     }
-    @Test
+    @ParameterizedTest
+    @CsvSource({"2,morpheus,zion resident"})
     @DisplayName("Обновить данные пользователя через PUT")
-    public void putUpdateUser(){
-        CRUDUserPOJO userData = new CRUDUserPOJO("morpheus","zion resident");
-        int userId = 2;
+    public void putUpdateUser(int userId,String name, String job){
+        CRUDUserPOJO userData = new CRUDUserPOJO(name,job);
         given()
                 .body(userData)
                 .pathParams("id",userId)
@@ -148,14 +146,13 @@ public class ReqresTests {
                 .when()
                 .put(reqresEndPoints.singleUser)
                 .then()
-                .statusCode(200)
-                .extract().response();
+                .statusCode(200);
     }
-    @Test
+    @ParameterizedTest
+    @CsvSource({"2,morpheus,zion resident"})
     @DisplayName("Обновить данные пользователя через PATCH")
-    public void patchUpdateUse(){
-        CRUDUserPOJO userData = new CRUDUserPOJO("morpheus","zion resident");
-        int userId = 2;
+    public void patchUpdateUse(int userId,String name, String job){
+        CRUDUserPOJO userData = new CRUDUserPOJO(name,job);
         given()
                 .body(userData)
                 .pathParams("id",userId)
@@ -163,13 +160,12 @@ public class ReqresTests {
                 .when()
                 .patch(reqresEndPoints.singleUser)
                 .then()
-                .statusCode(200)
-                .extract().response();
+                .statusCode(200);
     }
-    @Test
+    @ParameterizedTest
+    @ValueSource(ints = 2)
     @DisplayName("Удалить пользователя")
-    public void deleteUser(){
-        int userId = 2;
+    public void deleteUser(int userId){
         given()
                 .pathParams("id",userId)
                 .spec(reqresRequestSpecification)
@@ -178,67 +174,63 @@ public class ReqresTests {
                 .then()
                 .statusCode(204);
     }
-    @Test
+    @ParameterizedTest
+    @CsvSource({"eve.holt@reqres.in,pistol,QpwL5tke4Pnpja7X4"})
     @DisplayName("Удачно зарегестрировать пользователя")
-    public void SuccessfulUserRegister(){
+    public void SuccessfulUserRegister(String email,String password,String expectedToken){
         UserLoginAndRegistrationPOJO userData
-                = new UserLoginAndRegistrationPOJO("eve.holt@reqres.in","pistol");
-        Response response = given()
+                = new UserLoginAndRegistrationPOJO(email,password);
+        given()
                 .spec(reqresRequestSpecification)
                 .body(userData)
                 .when()
                 .post(ReqresEndpoints.register)
                 .then()
                 .statusCode(200)
-                .extract().response();
-        String actualToken = response.then().extract().body().jsonPath().getString("token");
-        String expectedToken = "QpwL5tke4Pnpja7X4";
-        assertThat(actualToken,equalTo(expectedToken));
+                .body("token",equalTo(expectedToken));
     }
-    @Test
+    @ParameterizedTest
+    @CsvSource({"sydney@fife"})
     @DisplayName("Неудачно зарегестрировать пользователя")
-    public void UnSuccessfulUserRegister(){
+    public void UnSuccessfulUserRegister(String email){
         UserLoginAndRegistrationPOJO userData
-                = new UserLoginAndRegistrationPOJO("sydney@fife");
-        Response response = given()
+                = new UserLoginAndRegistrationPOJO(email);
+        given()
                 .body(userData)
                 .spec(reqresRequestSpecification)
                 .when()
                 .post(reqresEndPoints.register)
                 .then()
-                .statusCode(400)
-                .extract().response();
+                .statusCode(400);
     }
-    @Test
+    @ParameterizedTest
+    @CsvSource({"eve.holt@reqres.in,cityslicka,QpwL5tke4Pnpja7X4"})
     @DisplayName("Удачно аутентифицироваться пользователя")
-    public void SuccessfulUserLogin(){
+    public void SuccessfulUserLogin(String email,String password,String expectedToken){
         UserLoginAndRegistrationPOJO userData
-                = new UserLoginAndRegistrationPOJO("eve.holt@reqres.in","cityslicka");
-        Response response = given()
+                = new UserLoginAndRegistrationPOJO(email,password);
+        given()
                 .spec(reqresRequestSpecification)
                 .body(userData)
                 .when()
                 .post(reqresEndPoints.login)
                 .then()
                 .statusCode(200)
-                .extract().response();
-        String actualToken = response.then().extract().body().jsonPath().getString("token");
-        String expectedToken = "QpwL5tke4Pnpja7X4";
-        assertThat(actualToken,equalTo(expectedToken));
+                .body("token",equalTo(expectedToken));
+
     }
-    @Test
+    @ParameterizedTest
+    @CsvSource({"peter@klaven"})
     @DisplayName("Неудачно аутентифицироваться пользователя")
-    public void UnSuccessfulUserLogin(){
+    public void UnSuccessfulUserLogin(String email){
         UserLoginAndRegistrationPOJO userData
-                = new UserLoginAndRegistrationPOJO("peter@klaven");
-        Response response = given()
+                = new UserLoginAndRegistrationPOJO(email);
+        given()
                 .body(userData)
                 .spec(reqresRequestSpecification)
                 .when()
                 .post(reqresEndPoints.login)
                 .then()
-                .statusCode(400)
-                .extract()
-                .response();
+                .statusCode(400);
     }
 }
